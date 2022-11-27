@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <SourceRoot>$(MSBuildThisFileDirectory)</SourceRoot>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Variables">
+    <SecondsSinceMidnight>$([System.DateTime]::Now.Subtract($([System.DateTime]::Now.Date)).TotalSeconds.ToString('#0'))</SecondsSinceMidnight>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Versioning">
+    <BuildRevision>$([MSBuild]::Divide($(SecondsSinceMidnight), 2).ToString('#0'))</BuildRevision>
+    <VersionPrefix Condition=" '$(VersionPrefix)'=='' AND '$(Version)'==''  ">0.1.0</VersionPrefix>
+    <AssemblyVersion Condition=" '$(AssemblyVersion)'=='' AND '$(Version)'=='' ">$(VersionPrefix)</AssemblyVersion>
+    <FileVersion Condition=" '$(Version)'=='' ">$(AssemblyVersion).$(BuildRevision)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OfficialBuild)' != 'true' AND '$(Version)'=='' AND '$(VersionSuffix)'=='' ">
+    <VersionDateSuffix Condition=" '$(VersionDateSuffix)'=='' ">$([System.DateTime]::UtcNow.ToString(yyyyMMddHHmm))</VersionDateSuffix>
+    <VersionSuffix>dev</VersionSuffix>
+    <VersionSuffix Condition=" '$(VersionDateSuffix)'!='' ">$(VersionSuffix)-$(VersionDateSuffix)</VersionSuffix>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(Configuration)' == 'Debug' ">
+      <PropertyGroup>
+        <GitHeadSha>&lt;dev build&gt;</GitHeadSha>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <GitHeadSha>Git HEAD Not found</GitHeadSha>
+        <DotGitDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/.git'))</DotGitDir>
+        <HeadFileContent Condition="Exists('$(DotGitDir)/HEAD')">$([System.IO.File]::ReadAllText('$(DotGitDir)/HEAD').Trim())</HeadFileContent>
+        <RefPath Condition="$(HeadFileContent.StartsWith('ref: '))">$(DotGitDir)/$(HeadFileContent.Substring(5))</RefPath>
+        <GitHeadSha Condition="'$(RefPath)' != '' AND Exists('$(RefPath)')">$([System.IO.File]::ReadAllText('$(RefPath)').Trim())</GitHeadSha>
+        <GitHeadSha Condition="'$(HeadFileContent)' != '' AND '$(RefPath)' == ''">$(HeadFileContent)</GitHeadSha>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+</Project>
